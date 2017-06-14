@@ -114,21 +114,21 @@ public extension EasyTipView {
     superview.addSubview(self)
     
     if preferences.dismissWhenTouchingOutside {
-          if let window = self.window {
-                let dismissOverlay  = UIView(frame: window.bounds)
-                dismissOverlay.isUserInteractionEnabled = true
-                dismissOverlay.addGestureRecognizer(tap)
-                dismissOverlay.autoresizingMask = [.flexibleHeight, .flexibleWidth]
-                window.addSubview(dismissOverlay)
-                self.dismissOverlay = dismissOverlay
-            }
+      if let window = self.window {
+        let dismissOverlay  = UIView(frame: window.bounds)
+        dismissOverlay.isUserInteractionEnabled = true
+        dismissOverlay.addGestureRecognizer(tap)
+        dismissOverlay.autoresizingMask = [.flexibleHeight, .flexibleWidth]
+        window.addSubview(dismissOverlay)
+        self.dismissOverlay = dismissOverlay
+      }
     }
     
     let animations : () -> () = {
       self.transform = finalTransform
       self.alpha = 1
     }
-
+    
     
     if animated {
       UIView.animate(withDuration: preferences.animating.showDuration, delay: 0, usingSpringWithDamping: damping, initialSpringVelocity: velocity, options: [.curveEaseInOut], animations: animations, completion: nil)
@@ -265,7 +265,7 @@ open class EasyTipView: UIView {
   fileprivate(set) open var preferences: Preferences
   open let text: String
   public var icon:   UIImage?
-  private var iconView:   UIImageView?
+  fileprivate var iconView:   UIImageView?
   
   // MARK: - Lazy variables -
   
@@ -445,10 +445,27 @@ open class EasyTipView: UIView {
     self.frame = frame
   }
   
+  func isInside(view: UIView?, location: CGPoint) -> Bool {
+    guard let view = view else { return false }
+    if (self.hitTest(location, with: nil) != nil) {
+      return true
+    } else {
+      return false
+    }
+  }
+  
   // MARK:- Callbacks -
   
-  func handleTap() {
-    dismiss()
+  func handleTap(sender: UITapGestureRecognizer) {
+    let location = sender.location(in: self)
+    let location2 = sender.location(in: iconView)
+    
+    if isInside(view: self, location: location) || isInside(view: iconView, location: location2) {
+      dismiss()
+    } else {
+      self.delegate = nil
+      dismiss()
+    }
   }
   
   // MARK:- Drawing -
@@ -565,13 +582,14 @@ open class EasyTipView: UIView {
       x = bubbleFrame.center.x - preferences.positioning.iconWidth / 2
       y = bubbleFrame.center.y - preferences.positioning.iconHeight / 2
     }
-    let iconView = UIImageView(frame: CGRect(x: x + self.preferences.positioning.iconXPadding / 2,
-                                             y: y + self.preferences.positioning.iconYPadding / 2,
-                                             width: self.preferences.positioning.iconWidth,
-                                             height: self.preferences.positioning.iconHeight))
-    iconView.image = icon
-    self.addSubview(iconView)
-    
+    iconView = UIImageView(frame: CGRect(x: x + self.preferences.positioning.iconXPadding / 2,
+                                         y: y + self.preferences.positioning.iconYPadding / 2,
+                                         width: self.preferences.positioning.iconWidth,
+                                         height: self.preferences.positioning.iconHeight))
+    if let iconView = iconView {
+      iconView.image = icon
+      self.addSubview(iconView)
+    }
   }
   
   override open func draw(_ rect: CGRect) {
